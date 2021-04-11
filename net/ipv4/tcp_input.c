@@ -3650,6 +3650,7 @@ static int tcp_ack(struct sock *sk, const struct sk_buff *skb, int flag)
 		else
 			NET_INC_STATS(sock_net(sk), LINUX_MIB_TCPPUREACKS);
 
+		//收到ack后更新滑动窗口大小
 		flag |= tcp_ack_update_window(sk, skb, ack, ack_seq);
 
 		if (TCP_SKB_CB(skb)->sacked)
@@ -5364,6 +5365,8 @@ static bool tcp_validate_incoming(struct sock *sk, struct sk_buff *skb,
 		/* Reset is accepted even if it did not pass PAWS. */
 	}
 
+    //先校验收到包的seq no是否有效，无效的话直接扔掉，即使是reset
+	//如果seq no无效，并且不是reset包的话得dup ack
 	/* Step 1: check sequence number */
 	if (!tcp_sequence(tp, TCP_SKB_CB(skb)->seq, TCP_SKB_CB(skb)->end_seq)) {
 		/* RFC793, page 37: "In all states except SYN-SENT, all reset
@@ -5385,6 +5388,7 @@ static bool tcp_validate_incoming(struct sock *sk, struct sk_buff *skb,
 		goto discard;
 	}
 
+	//如果seq no有效再来处理reset包，如果seq no无效包被step 1 扔掉了
 	/* Step 2: check RST bit */
 	if (th->rst) {
 		/* RFC 5961 3.2 (extend to match against (RCV.NXT - 1) after a
@@ -5627,7 +5631,7 @@ slow_path:
 	if (!tcp_validate_incoming(sk, skb, th, 1))
 		return;
 
-step5:
+step5: //处理收到的ack
 	if (tcp_ack(sk, skb, FLAG_SLOWPATH | FLAG_UPDATE_TS_RECENT) < 0)
 		goto discard;
 
@@ -5753,6 +5757,7 @@ static void smc_check_reset_syn(struct tcp_sock *tp)
 #endif
 }
 
+//在syn send状态收到包的处理逻辑
 static int tcp_rcv_synsent_state_process(struct sock *sk, struct sk_buff *skb,
 					 const struct tcphdr *th)
 {
@@ -5911,13 +5916,13 @@ discard:
 	if (tp->rx_opt.ts_recent_stamp && tp->rx_opt.saw_tstamp &&
 	    tcp_paws_reject(&tp->rx_opt, 0))
 		goto discard_and_undo;
-
+	//在socket发送syn后收到了一个syn(正常应该收到syn+ack),这里是允许的。
 	if (th->syn) {
 		/* We see SYN without ACK. It is attempt of
 		 * simultaneous connect with crossed SYNs.
 		 * Particularly, it can be connect to self.
 		 */
-		tcp_set_state(sk, TCP_SYN_RECV);
+		tcp_set_state(sk, TCP_SYN_RECV); //自己连自己
 
 		if (tp->rx_opt.saw_tstamp) {
 			tp->rx_opt.tstamp_ok = 1;
@@ -5984,9 +5989,9 @@ reset_and_undo:
  *	It's called from both tcp_v4_rcv and tcp_v6_rcv and should be
  *	address independent.
  */
-
+//tcp收包最重要的逻辑处理
 int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb)
-{
+{ 
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct inet_connection_sock *icsk = inet_csk(sk);
 	const struct tcphdr *th = tcp_hdr(skb);
@@ -6027,7 +6032,7 @@ int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb)
 	case TCP_SYN_SENT:
 		tp->rx_opt.saw_tstamp = 0;
 		tcp_mstamp_refresh(tp);
-		queued = tcp_rcv_synsent_state_process(sk, skb, th);
+		queued = tcp_rcv_synsent_state_process(sk, skb, th); //核心逻辑
 		if (queued >= 0)
 			return queued;
 
@@ -6094,7 +6099,7 @@ int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb)
 			tp->copied_seq = tp->rcv_nxt;
 		}
 		smp_mb();
-		tcp_set_state(sk, TCP_ESTABLISHED);
+		tcp_set_state(sk, TCP_ESTABLISHED); //从TCP_SYN_RECV变为TCP_ESTABLISHED
 		sk->sk_state_change(sk);
 
 		/* Note, that this wakeup is only for marginal crossed SYN case.
@@ -6418,6 +6423,8 @@ int tcp_conn_request(struct request_sock_ops *rsk_ops,
 			goto drop;
 	}
 
+    //4.9内核后当全连接队列已满在收到syn后不回复syn+ack，而是直接扔掉
+    //drop when the accept queue is full
 	if (sk_acceptq_is_full(sk)) {
 		NET_INC_STATS(sock_net(sk), LINUX_MIB_LISTENOVERFLOWS);
 		goto drop;

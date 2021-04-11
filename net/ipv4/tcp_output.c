@@ -2278,7 +2278,7 @@ void tcp_chrono_stop(struct sock *sk, const enum tcp_chrono type)
  */
 static bool tcp_write_xmit(struct sock *sk, unsigned int mss_now, int nonagle,
 			   int push_one, gfp_t gfp)
-{
+{ //发送核心逻辑
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct sk_buff *skb;
 	unsigned int tso_segs, sent_pkts;
@@ -2358,6 +2358,7 @@ static bool tcp_write_xmit(struct sock *sk, unsigned int mss_now, int nonagle,
 		if (tcp_small_queue_check(sk, skb, 0))
 			break;
 
+		//tcp_transmit_skb 发送
 		if (unlikely(tcp_transmit_skb(sk, skb, 1, gfp)))
 			break;
 

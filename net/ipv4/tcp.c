@@ -1274,7 +1274,7 @@ restart:
 			int linear;
 
 new_segment:
-			if (!sk_stream_memory_free(sk))
+			if (!sk_stream_memory_free(sk)) //判断buffer是否够
 				goto wait_for_sndbuf;
 
 			if (process_backlog && sk_flush_backlog(sk)) {
@@ -1284,7 +1284,7 @@ new_segment:
 			first_skb = tcp_rtx_and_write_queues_empty(sk);
 			linear = select_size(first_skb, zc);
 			skb = sk_stream_alloc_skb(sk, linear, sk->sk_allocation,
-						  first_skb);
+						  first_skb); //分配buffer
 			if (!skb)
 				goto wait_for_memory;
 
@@ -1332,7 +1332,7 @@ new_segment:
 
 			copy = min_t(int, copy, pfrag->size - pfrag->offset);
 
-			if (!sk_wmem_schedule(sk, copy))
+			if (!sk_wmem_schedule(sk, copy)) //判断内存是否够
 				goto wait_for_memory;
 
 			err = skb_copy_to_page_nocache(sk, &msg->msg_iter, skb,
@@ -1386,9 +1386,9 @@ new_segment:
 			tcp_push_one(sk, mss_now);
 		continue;
 
-wait_for_sndbuf:
+wait_for_sndbuf: //发送buffer不够，等待
 		set_bit(SOCK_NOSPACE, &sk->sk_socket->flags);
-wait_for_memory:
+wait_for_memory: //内存不够，先把能发的都发出去
 		if (copied)
 			tcp_push(sk, flags & ~MSG_MORE, mss_now,
 				 TCP_NAGLE_PUSH, size_goal);

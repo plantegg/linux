@@ -129,6 +129,7 @@ void inet_get_local_port_range(struct net *net, int *low, int *high)
 }
 EXPORT_SYMBOL(inet_get_local_port_range);
 
+//bind(0)选择可用端口
 static int inet_csk_bind_conflict(const struct sock *sk,
 				  const struct inet_bind_bucket *tb,
 				  bool relax, bool reuseport_ok)
@@ -144,7 +145,7 @@ static int inet_csk_bind_conflict(const struct sock *sk,
 	 * in tb->owners list belong to the same net - the
 	 * one this bucket belongs to.
 	 */
-
+    //bind(0)的时候  search本地可用port，不考虑time_wait,即使 tcp_tw_reuse=1
 	sk_for_each_bound(sk2, &tb->owners) {
 		if (sk != sk2 &&
 		    (!sk->sk_bound_dev_if ||

@@ -108,6 +108,7 @@ static u32 tcp_v4_init_ts_off(const struct net *net, const struct sk_buff *skb)
 	return secure_tcp_ts_off(net, ip_hdr(skb)->daddr, ip_hdr(skb)->saddr);
 }
 
+//connect()时进行随机端口可用性的判断
 int tcp_twsk_unique(struct sock *sk, struct sock *sktw, void *twp)
 {
 	const struct inet_timewait_sock *tw = inet_twsk(sktw);
@@ -154,6 +155,7 @@ int tcp_twsk_unique(struct sock *sk, struct sock *sktw, void *twp)
 	   If TW bucket has been already destroyed we fall back to VJ's scheme
 	   and use initial timestamp retrieved from peer table.
 	 */
+	//如果 sysctl_tcp_tw_reuse 为true可以重用time_wait状态的port
 	if (tcptw->tw_ts_recent_stamp &&
 	    (!twp || (reuse && time_after32(ktime_get_seconds(),
 					    tcptw->tw_ts_recent_stamp)))) {
@@ -1519,6 +1521,7 @@ int tcp_v4_do_rcv(struct sock *sk, struct sk_buff *skb)
 {
 	struct sock *rsk;
 
+	//根据不同的状态执行不同的处理逻辑
 	if (sk->sk_state == TCP_ESTABLISHED) { /* Fast path */
 		struct dst_entry *dst = sk->sk_rx_dst;
 
@@ -1544,7 +1547,7 @@ int tcp_v4_do_rcv(struct sock *sk, struct sk_buff *skb)
 		if (!nsk)
 			goto discard;
 		if (nsk != sk) {
-			if (tcp_child_process(sk, nsk, skb)) {
+			if (tcp_child_process(sk, nsk, skb)) { //失败则返回值为1
 				rsk = nsk;
 				goto reset;
 			}
