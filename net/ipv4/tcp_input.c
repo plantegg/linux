@@ -5916,7 +5916,7 @@ discard:
 	if (tp->rx_opt.ts_recent_stamp && tp->rx_opt.saw_tstamp &&
 	    tcp_paws_reject(&tp->rx_opt, 0))
 		goto discard_and_undo;
-	//在socket发送syn后收到了一个syn(正常应该收到syn+ack),这里是允许的。
+	//在socket发送syn后收到了一个syn(正常应该收到syn+ack),这里是允许的。 自连接
 	if (th->syn) {
 		/* We see SYN without ACK. It is attempt of
 		 * simultaneous connect with crossed SYNs.
@@ -6008,9 +6008,9 @@ int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb)
 			return 1;
 
 		if (th->rst)
-			goto discard;
+			goto discard; //listen状态收到reset直接扔掉
 
-		if (th->syn) {
+		if (th->syn) {    //建连接 握手
 			if (th->fin)
 				goto discard;
 			/* It is possible that we process SYN packets from backlog,
@@ -6027,8 +6027,9 @@ int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb)
 			consume_skb(skb);
 			return 0;
 		}
-		goto discard;
+		goto discard; //listen状态只处理ack和syn，其它都扔掉
 
+	//三次握手第二步
 	case TCP_SYN_SENT:
 		tp->rx_opt.saw_tstamp = 0;
 		tcp_mstamp_refresh(tp);
