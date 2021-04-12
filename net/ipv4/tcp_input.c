@@ -5757,7 +5757,7 @@ static void smc_check_reset_syn(struct tcp_sock *tp)
 #endif
 }
 
-//在syn send状态收到包的处理逻辑
+//建连接, 三次握手第二步, 在syn send状态收到包的处理逻辑
 static int tcp_rcv_synsent_state_process(struct sock *sk, struct sk_buff *skb,
 					 const struct tcphdr *th)
 {
@@ -5989,7 +5989,7 @@ reset_and_undo:
  *	It's called from both tcp_v4_rcv and tcp_v6_rcv and should be
  *	address independent.
  */
-//tcp收包最重要的逻辑处理
+//tcp握手建连接最重要的逻辑处理
 int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb)
 { 
 	struct tcp_sock *tp = tcp_sk(sk);
@@ -6018,6 +6018,8 @@ int tcp_rcv_state_process(struct sock *sk, struct sk_buff *skb)
 			 */
 			rcu_read_lock();
 			local_bh_disable();
+			//因为客户端发来的是syn消息，而服务端此时是TCP_LISTEN状态，所以该方法最终会调用conn_request(sk, skb)方法。
+			//conn_request指向tcp_v4_conn_request 处理建连接，判断全连接队列
 			acceptable = icsk->icsk_af_ops->conn_request(sk, skb) >= 0;
 			local_bh_enable();
 			rcu_read_unlock();

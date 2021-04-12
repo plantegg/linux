@@ -1377,12 +1377,13 @@ static const struct tcp_request_sock_ops tcp_request_sock_ipv4_ops = {
 	.send_synack	=	tcp_v4_send_synack,
 };
 
+//实际被 icsk->icsk_af_ops->conn_request(sk, skb) 调用
 int tcp_v4_conn_request(struct sock *sk, struct sk_buff *skb)
 {
 	/* Never answer to SYNs send to broadcast or multicast */
 	if (skb_rtable(skb)->rt_flags & (RTCF_BROADCAST | RTCF_MULTICAST))
 		goto drop;
-
+	//建连接
 	return tcp_conn_request(&tcp_request_sock_ops,
 				&tcp_request_sock_ipv4_ops, sk, skb);
 
@@ -1556,6 +1557,7 @@ int tcp_v4_do_rcv(struct sock *sk, struct sk_buff *skb)
 	} else
 		sock_rps_save_rxhash(sk, skb);
 
+	//收包的核心处理逻辑
 	if (tcp_rcv_state_process(sk, skb)) {
 		rsk = sk;
 		goto reset;
@@ -1691,7 +1693,7 @@ static void tcp_v4_fill_cb(struct sk_buff *skb, const struct iphdr *iph,
 /*
  *	From tcp_input.c
  */
-
+//ip 层收到消息后，如果是tcp就调用tcp_v4_rcv作为tcp协议的入口
 int tcp_v4_rcv(struct sk_buff *skb)
 {
 	struct net *net = dev_net(skb->dev);
@@ -1729,6 +1731,7 @@ int tcp_v4_rcv(struct sk_buff *skb)
 	th = (const struct tcphdr *)skb->data;
 	iph = ip_hdr(skb);
 lookup:
+	//调用__inet_lookup_skb方法，根据ip、端口等信息在全局的hashtable中找到对应的sock。
 	sk = __inet_lookup_skb(&tcp_hashinfo, skb, __tcp_hdrlen(th), th->source,
 			       th->dest, sdif, &refcounted);
 	if (!sk)
@@ -1815,6 +1818,7 @@ process:
 
 	skb->dev = NULL;
 
+	//核心处理逻辑，握手
 	if (sk->sk_state == TCP_LISTEN) {
 		ret = tcp_v4_do_rcv(sk, skb);
 		goto put_and_return;
