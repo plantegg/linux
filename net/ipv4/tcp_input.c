@@ -5351,6 +5351,7 @@ static bool tcp_validate_incoming(struct sock *sk, struct sk_buff *skb,
 	bool rst_seq_match = false;
 
 	/* RFC1323: H1. Apply PAWS check first. */
+	//PAWS是Protect Against Wrapped Sequences的简写，字面意思是防止sequence number缠绕,也就是判断seq是否落在接收窗口范围内
 	if (tcp_fast_parse_options(sock_net(sk), skb, th, tp) &&
 	    tp->rx_opt.saw_tstamp &&
 	    tcp_paws_discard(sk, skb)) {
@@ -5440,6 +5441,7 @@ static bool tcp_validate_incoming(struct sock *sk, struct sk_buff *skb,
 	 * RFC 5961 4.2 : Send a challenge ack
 	 */
 	if (th->syn) {
+//对应TCPSYNChallenge 丢包，也就是连接是established状态，又收到了syn包，扔掉
 syn_challenge:
 		if (syn_inerr)
 			TCP_INC_STATS(sock_net(sk), TCP_MIB_INERRS);
@@ -5485,7 +5487,7 @@ void tcp_rcv_established(struct sock *sk, struct sk_buff *skb)
 	unsigned int len = skb->len;
 
 	/* TCP congestion window tracking */
-	trace_tcp_probe(sk, skb);
+	trace_tcp_probe(sk, skb); //tcp trace point
 
 	tcp_mstamp_refresh(tp);
 	if (unlikely(!sk->sk_rx_dst))

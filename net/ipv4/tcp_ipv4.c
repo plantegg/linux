@@ -1522,7 +1522,7 @@ int tcp_v4_do_rcv(struct sock *sk, struct sk_buff *skb)
 {
 	struct sock *rsk;
 
-	//ESTABLISHED状态下执行收包处理逻辑
+	//根据不同的状态执行不同的处理逻辑
 	if (sk->sk_state == TCP_ESTABLISHED) { /* Fast path */
 		struct dst_entry *dst = sk->sk_rx_dst;
 
@@ -1557,7 +1557,7 @@ int tcp_v4_do_rcv(struct sock *sk, struct sk_buff *skb)
 	} else
 		sock_rps_save_rxhash(sk, skb);
 
-	//tcp握手收包的核心处理逻辑
+	//收包的核心处理逻辑
 	if (tcp_rcv_state_process(sk, skb)) {
 		rsk = sk;
 		goto reset;
