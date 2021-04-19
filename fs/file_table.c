@@ -138,6 +138,7 @@ struct file *alloc_empty_file(int flags, const struct cred *cred)
 	/*
 	 * Privileged users can go above max_files
 	 */
+	//files_stat.max_files就是 fs.file-max参数, file-max 这个参数只限制非 root 用户
 	if (get_nr_files() >= files_stat.max_files && !capable(CAP_SYS_ADMIN)) {
 		/*
 		 * percpu_counters are inaccurate.  Do an expensive check before

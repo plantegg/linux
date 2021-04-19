@@ -476,6 +476,11 @@ static unsigned int find_next_fd(struct fdtable *fdt, unsigned int start)
 /*
  * allocate a file descriptor, mark it busy.
  */
+//判断要分配的句柄号是不是超过了 limits.conf 中 nofile 的限制。fd 是当前进程相关的，是一个从 0 开始的整数
+/*
+结论1：soft nofile 和 fs.nr_open的作用一样，它两都是限制的单个进程的最大文件数量。区别是 soft nofile 可以按用户来配置，而 fs.nr_open 所有用户只能配一个。注意 hard nofile 一定要比 fs.nr_open 要小，否则可能导致用户无法登陆。
+结论2：fs.file-max: 整个系统上可打开的最大文件数，但不限制 root 用户
+*/
 int __alloc_fd(struct files_struct *files,
 	       unsigned start, unsigned end, unsigned flags)
 {
@@ -500,7 +505,7 @@ repeat:
 	error = -EMFILE;
 	if (fd >= end)
 		goto out;
-
+	// 2. 判断打开文件数是否超过 fs.nr_open
 	error = expand_files(files, fd);
 	if (error < 0)
 		goto out;
@@ -541,6 +546,7 @@ static int alloc_fd(unsigned start, unsigned flags)
 
 int get_unused_fd_flags(unsigned flags)
 {
+	// RLIMIT_NOFILE 是 limits.conf 中配置的 soft nofile
 	return __alloc_fd(current->files, 0, rlimit(RLIMIT_NOFILE), flags);
 }
 EXPORT_SYMBOL(get_unused_fd_flags);
