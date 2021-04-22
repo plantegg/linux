@@ -356,6 +356,7 @@ enum zone_type {
 
 #ifndef __GENERATING_BOUNDS_H
 
+//基于zone的内存管理
 struct zone {
 	/* Read-mostly fields */
 
