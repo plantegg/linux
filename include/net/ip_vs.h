@@ -1657,6 +1657,7 @@ static inline void ip_vs_unregister_conntrack(struct ip_vs_service *svc)
 #endif
 }
 
+//for lc load balance 
 static inline int
 ip_vs_dest_conn_overhead(struct ip_vs_dest *dest)
 {
