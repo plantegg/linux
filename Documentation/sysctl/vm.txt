@@ -874,6 +874,7 @@ can then be used to tune kswapd aggressiveness accordingly.
 
 ==============================================================
 
+#/proc/sys/vm/zone_reclaim_mode
 zone_reclaim_mode:
 
 Zone_reclaim_mode allows someone to set more or less aggressive approaches to
