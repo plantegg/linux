@@ -3092,6 +3092,7 @@ void sk_common_release(struct sock *sk)
 }
 EXPORT_SYMBOL(sk_common_release);
 
+//ss -m 展示每个连接分配的内存大小细节
 void sk_get_meminfo(const struct sock *sk, u32 *mem)
 {
 	memset(mem, 0, sizeof(*mem) * SK_MEMINFO_VARS);

@@ -2471,6 +2471,7 @@ struct rtable *ip_route_output_key_hash_rcu(struct net *net, struct flowi4 *fl4,
 		goto out;
 	}
 
+	//如果是本地路由表的，则都走loopback
 	if (res->type == RTN_LOCAL) {
 		if (!fl4->saddr) {
 			if (res->fi->fib_prefsrc)
@@ -2481,7 +2482,7 @@ struct rtable *ip_route_output_key_hash_rcu(struct net *net, struct flowi4 *fl4,
 
 		/* L3 master device is the loopback for that domain */
 		dev_out = l3mdev_master_dev_rcu(FIB_RES_DEV(*res)) ? :
-			net->loopback_dev;
+			net->loopback_dev; //lo网卡
 
 		/* make sure orig_oif points to fib result device even
 		 * though packet rx/tx happens over loopback or l3mdev
