@@ -259,6 +259,8 @@ static inline struct fib_table *fib_new_table(struct net *net, u32 id)
 	return fib_get_table(net, id);
 }
 
+//在 fib_lookup 将会对 local 和 main 两个路由表展开查询，并且是先查 local 后查询 main。
+//ip route list table local 查看local路由表
 static inline int fib_lookup(struct net *net, const struct flowi4 *flp,
 			     struct fib_result *res, unsigned int flags)
 {
