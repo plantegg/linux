@@ -201,6 +201,7 @@ static int tcp_v4_pre_connect(struct sock *sk, struct sockaddr *uaddr,
 }
 
 /* This will initiate an outgoing connection. */
+//初始化连接所需要的信息
 int tcp_v4_connect(struct sock *sk, struct sockaddr *uaddr, int addr_len)
 {
 	struct sockaddr_in *usin = (struct sockaddr_in *)uaddr;
@@ -277,8 +278,8 @@ int tcp_v4_connect(struct sock *sk, struct sockaddr *uaddr, int addr_len)
 	 * lock select source port, enter ourselves into the hash tables and
 	 * complete initialization after this.
 	 */
-	tcp_set_state(sk, TCP_SYN_SENT);
-	err = inet_hash_connect(tcp_death_row, sk);
+	tcp_set_state(sk, TCP_SYN_SENT);               //设置socket状态
+	err = inet_hash_connect(tcp_death_row, sk);    //动态选择sport
 	if (err)
 		goto failure;
 
@@ -314,6 +315,7 @@ int tcp_v4_connect(struct sock *sk, struct sockaddr *uaddr, int addr_len)
 	if (err)
 		goto failure;
 
+	//执行三次握手的第一次，也就是发送syn包
 	err = tcp_connect(sk);
 
 	if (err)

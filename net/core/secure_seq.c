@@ -144,7 +144,9 @@ EXPORT_SYMBOL_GPL(secure_tcp_seq);
 
 u32 secure_ipv4_port_ephemeral(__be32 saddr, __be32 daddr, __be16 dport)
 {
+	//随机初始值
 	net_secret_init();
+	//port_offset 是三元组信息以及net_secret相关的一个值
 	return siphash_3u32((__force u32)saddr, (__force u32)daddr,
 			    (__force u16)dport, &net_secret);
 }

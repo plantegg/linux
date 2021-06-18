@@ -285,6 +285,9 @@ static inline int sk_reuseport_match(struct inet_bind_bucket *tb,
  * if snum is zero it means select any available local port.
  * We try to allocate an odd port (and leave even ports for connect())
  */
+//bind不带port number的时候随机选择奇数端口，偶数给了connect
+//bind不同于connect，bind的socket还没有四元组
+//没法判断四元组是否重复，所以bind随机端口数量有限
 int inet_csk_get_port(struct sock *sk, unsigned short snum)
 {
 	bool reuse = sk->sk_reuse && sk->sk_state != TCP_LISTEN;

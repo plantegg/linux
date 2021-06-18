@@ -435,6 +435,7 @@ found:
 }
 EXPORT_SYMBOL_GPL(__inet_lookup_established);
 
+//connect()时进行随机端口可用性的判断
 /* called with local bh disabled */
 static int __inet_check_established(struct inet_timewait_death_row *death_row,
 				    struct sock *sk, __u16 lport,
@@ -451,6 +452,7 @@ static int __inet_check_established(struct inet_timewait_death_row *death_row,
 	const __portpair ports = INET_COMBINED_PORTS(inet->inet_dport, lport);
 	unsigned int hash = inet_ehashfn(net, daddr, lport,
 					 saddr, inet->inet_dport);
+	//inet_ehash_bucket存放ESTABLISHED状态的socket 哈希表
 	struct inet_ehash_bucket *head = inet_ehash_bucket(hinfo, hash);
 	spinlock_t *lock = inet_ehash_lockp(hinfo, hash);
 	struct sock *sk2;
@@ -458,11 +460,11 @@ static int __inet_check_established(struct inet_timewait_death_row *death_row,
 	struct inet_timewait_sock *tw = NULL;
 
 	spin_lock(lock);
-
+	//遍历检查四元组是否冲突
 	sk_nulls_for_each(sk2, node, &head->chain) {
 		if (sk2->sk_hash != hash)
 			continue;
-
+		//INET_MATCH 执行四元组比较
 		if (likely(INET_MATCH(sk2, net, acookie,
 					 saddr, daddr, ports, dif, sdif))) {
 			if (sk2->sk_state == TCP_TIME_WAIT) {
@@ -502,6 +504,7 @@ not_unique:
 	return -EADDRNOTAVAIL;
 }
 
+//inet_sk_port_offset(sk)：这个函数是根据要连接的目的 IP 和端口等信息生成一个随机数。
 static u32 inet_sk_port_offset(const struct sock *sk)
 {
 	const struct inet_sock *inet = inet_sk(sk);
@@ -661,6 +664,8 @@ unlock:
 }
 EXPORT_SYMBOL_GPL(inet_unhash);
 
+//__inet_check_established：检查是否和现有 ESTABLISH 的连接是否冲突的时候用的函数
+//也就是检查四元组是否冲突
 int __inet_hash_connect(struct inet_timewait_death_row *death_row,
 		struct sock *sk, u32 port_offset,
 		int (*check_established)(struct inet_timewait_death_row *,
@@ -669,6 +674,7 @@ int __inet_hash_connect(struct inet_timewait_death_row *death_row,
 	struct inet_hashinfo *hinfo = death_row->hashinfo;
 	struct inet_timewait_sock *tw = NULL;
 	struct inet_bind_hashbucket *head;
+	//判断connect前是否调用过bind绑定到某个端口
 	int port = inet_sk(sk)->inet_num;
 	struct net *net = sock_net(sk);
 	struct inet_bind_bucket *tb;
@@ -693,12 +699,13 @@ int __inet_hash_connect(struct inet_timewait_death_row *death_row,
 		return ret;
 	}
 
+	//获取 /proc/sys/net/ipv4/ip_local_port_range 中的port range配置
 	inet_get_local_port_range(net, &low, &high);
 	high++; /* [32768, 60999] -> [32768, 61000[ */
 	remaining = high - low;
 	if (likely(remaining > 1))
 		remaining &= ~1U;
-
+    //port_offset是通过inet_sk_port_offset(sk) 计算出的随机数
 	offset = (hint + port_offset) % remaining;
 	/* In first pass we try ports of @low parity.
 	 * inet_csk_get_port() does the opposite choice.
@@ -706,11 +713,13 @@ int __inet_hash_connect(struct inet_timewait_death_row *death_row,
 	offset &= ~1U;
 other_parity_scan:
 	port = low + offset;
+	//循环查找可用端口，每次加2？ 
 	for (i = 0; i < remaining; i += 2, port += 2) {
 		if (unlikely(port >= high))
 			port -= remaining;
 		if (inet_is_local_reserved_port(net, port))
-			continue;
+			continue; //跳过本地保留端口，一般是0-1024
+		//查找和遍历已经使用的端口的哈希链表	
 		head = &hinfo->bhash[inet_bhashfn(net, port,
 						  hinfo->bhash_size)];
 		spin_lock_bh(&head->lock);
@@ -719,14 +728,16 @@ other_parity_scan:
 		 * the established check is already unique enough.
 		 */
 		inet_bind_bucket_for_each(tb, &head->chain) {
+			//如果端口已被使用，查找下一个
 			if (net_eq(ib_net(tb), net) && tb->port == port) {
 				if (tb->fastreuse >= 0 ||
 				    tb->fastreuseport >= 0)
 					goto next_port;
 				WARN_ON(hlist_empty(&tb->owners));
+				//检查四元组是否重复
 				if (!check_established(death_row, sk,
 						       port, &tw))
-					goto ok;
+					goto ok;    //如果check_established返回0，端口仍然可用
 				goto next_port;
 			}
 		}
@@ -739,7 +750,7 @@ other_parity_scan:
 		}
 		tb->fastreuse = -1;
 		tb->fastreuseport = -1;
-		goto ok;
+		goto ok;  //找到可用端口
 next_port:
 		spin_unlock_bh(&head->lock);
 		cond_resched();
@@ -749,7 +760,7 @@ next_port:
 	if ((offset & 1) && remaining > 1)
 		goto other_parity_scan;
 
-	return -EADDRNOTAVAIL;
+	return -EADDRNOTAVAIL;   //Cannot assign requested address错误
 
 ok:
 	hint += i + 2;
