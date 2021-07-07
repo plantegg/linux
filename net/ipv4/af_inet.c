@@ -226,12 +226,12 @@ int inet_listen(struct socket *sock, int backlog)
 			tcp_fastopen_init_key_once(sock_net(sk));
 		}
 
-		err = inet_csk_listen_start(sk, backlog);
+		err = inet_csk_listen_start(sk, backlog); //开始监听
 		if (err)
 			goto out;
 		tcp_call_bpf(sk, BPF_SOCK_OPS_TCP_LISTEN_CB, 0, NULL);
 	}
-	sk->sk_max_ack_backlog = backlog;
+	sk->sk_max_ack_backlog = backlog; //设置全连接队列最大值
 	err = 0;
 
 out:
@@ -493,6 +493,7 @@ int __inet_bind(struct sock *sk, struct sockaddr *uaddr, int addr_len,
 	    chk_addr_ret != RTN_BROADCAST)
 		goto out;
 
+	//用户传入的端口号
 	snum = ntohs(addr->sin_port);
 	err = -EACCES;
 	if (snum && snum < inet_prot_sock(net) &&
@@ -521,9 +522,9 @@ int __inet_bind(struct sock *sk, struct sockaddr *uaddr, int addr_len,
 	/* Make sure we are allowed to bind here. */
 	if (snum || !(inet->bind_address_no_port ||
 		      force_bind_address_no_port)) {
-		if (sk->sk_prot->get_port(sk, snum)) {
+		if (sk->sk_prot->get_port(sk, snum)) {//get_port call inet_csk_get_port
 			inet->inet_saddr = inet->inet_rcv_saddr = 0;
-			err = -EADDRINUSE;
+			err = -EADDRINUSE;    //错误信息 “Address already in use”
 			goto out_release_sock;
 		}
 		err = BPF_CGROUP_RUN_PROG_INET4_POST_BIND(sk);
@@ -651,7 +652,7 @@ int __inet_stream_connect(struct socket *sock, struct sockaddr *uaddr,
 			if (err)
 				goto out;
 		}
-
+		//call tcp_v4_connect
 		err = sk->sk_prot->connect(sk, uaddr, addr_len);
 		if (err < 0)
 			goto out;

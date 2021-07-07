@@ -161,6 +161,7 @@ struct fastopen_queue {
  * @rskq_defer_accept - User waits for some data after accept()
  *
  */
+//全连接队列定义
 struct request_sock_queue {
 	spinlock_t		rskq_lock;
 	u8			rskq_defer_accept;

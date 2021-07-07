@@ -435,7 +435,7 @@ found:
 }
 EXPORT_SYMBOL_GPL(__inet_lookup_established);
 
-//connect()时进行随机端口可用性的判断
+//connect()时进行随机端口四元组可用性的判断
 /* called with local bh disabled */
 static int __inet_check_established(struct inet_timewait_death_row *death_row,
 				    struct sock *sk, __u16 lport,
@@ -713,7 +713,7 @@ int __inet_hash_connect(struct inet_timewait_death_row *death_row,
 	offset &= ~1U;
 other_parity_scan:
 	port = low + offset;
-	//循环查找可用端口，每次加2？ 
+	//循环查找可用端口，每次加2
 	for (i = 0; i < remaining; i += 2, port += 2) {
 		if (unlikely(port >= high))
 			port -= remaining;
@@ -728,7 +728,7 @@ other_parity_scan:
 		 * the established check is already unique enough.
 		 */
 		inet_bind_bucket_for_each(tb, &head->chain) {
-			//如果端口已被使用，查找下一个
+			//如果端口已被使用，先检查四元组是否冲突，再查找下一个
 			if (net_eq(ib_net(tb), net) && tb->port == port) {
 				if (tb->fastreuse >= 0 ||
 				    tb->fastreuseport >= 0)

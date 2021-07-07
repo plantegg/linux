@@ -1284,7 +1284,7 @@ new_segment:
 			first_skb = tcp_rtx_and_write_queues_empty(sk);
 			linear = select_size(first_skb, zc);
 			skb = sk_stream_alloc_skb(sk, linear, sk->sk_allocation,
-						  first_skb); //分配buffer
+						  first_skb); //创建new sk_buff
 			if (!skb)
 				goto wait_for_memory;
 

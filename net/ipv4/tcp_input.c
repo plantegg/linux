@@ -5351,7 +5351,7 @@ static bool tcp_validate_incoming(struct sock *sk, struct sk_buff *skb,
 	bool rst_seq_match = false;
 
 	/* RFC1323: H1. Apply PAWS check first. */
-	//PAWS是Protect Against Wrapped Sequences的简写，字面意思是防止sequence number缠绕,也就是判断seq是否落在接收窗口范围内
+	//PAWS是Protect Against Wrapped Sequences的简写，字面意思是防止sequence number缠绕
 	if (tcp_fast_parse_options(sock_net(sk), skb, th, tp) &&
 	    tp->rx_opt.saw_tstamp &&
 	    tcp_paws_discard(sk, skb)) {

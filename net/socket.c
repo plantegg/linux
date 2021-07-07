@@ -1509,18 +1509,19 @@ int __sys_listen(int fd, int backlog)
 	sock = sockfd_lookup_light(fd, &err, &fput_needed);
 	if (sock) {
 		somaxconn = sock_net(sock->sk)->core.sysctl_somaxconn;
-		if ((unsigned int)backlog > somaxconn)
+		if ((unsigned int)backlog > somaxconn)   //backlog 和 somaxconn
 			backlog = somaxconn;
 
 		err = security_socket_listen(sock, backlog);
 		if (!err)
-			err = sock->ops->listen(sock, backlog);
+			err = sock->ops->listen(sock, backlog); //调用协议栈注册的 listen 函数，实际注册的是 af_inet.c->inet_listen 函数
 
 		fput_light(sock->file, fput_needed);
 	}
 	return err;
 }
 
+//listen 函数入口
 SYSCALL_DEFINE2(listen, int, fd, int, backlog)
 {
 	return __sys_listen(fd, backlog);
@@ -1586,7 +1587,7 @@ int __sys_accept4(int fd, struct sockaddr __user *upeer_sockaddr,
 	err = security_socket_accept(sock, newsock);
 	if (err)
 		goto out_fd;
-
+    //call inet_accept
 	err = sock->ops->accept(sock, newsock, sock->file->f_flags, false);
 	if (err < 0)
 		goto out_fd;
@@ -1648,7 +1649,7 @@ int __sys_connect(int fd, struct sockaddr __user *uservaddr, int addrlen)
 	struct socket *sock;
 	struct sockaddr_storage address;
 	int err, fput_needed;
-
+    //根据用户 fd 查找内核中的 socket 对象
 	sock = sockfd_lookup_light(fd, &err, &fput_needed);
 	if (!sock)
 		goto out;
@@ -1660,7 +1661,7 @@ int __sys_connect(int fd, struct sockaddr __user *uservaddr, int addrlen)
 	    security_socket_connect(sock, (struct sockaddr *)&address, addrlen);
 	if (err)
 		goto out_put;
-
+    //do connect, call inet_stream_connect
 	err = sock->ops->connect(sock, (struct sockaddr *)&address, addrlen,
 				 sock->file->f_flags);
 out_put:
