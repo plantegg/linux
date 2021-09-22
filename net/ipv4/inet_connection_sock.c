@@ -248,6 +248,7 @@ success:
 	return head;
 }
 
+//由于上一次listen操作，tb->fastreuseport被设置为FASTREUSEPORT_ANY，而此次listen操作的socket，又设置了SO_REUSEPORT参数，即sk->sk_reuseport值大于0，所以，该方法最终返回true。
 static inline int sk_reuseport_match(struct inet_bind_bucket *tb,
 				     struct sock *sk)
 {
@@ -291,10 +292,12 @@ static inline int sk_reuseport_match(struct inet_bind_bucket *tb,
 int inet_csk_get_port(struct sock *sk, unsigned short snum)
 {
 	bool reuse = sk->sk_reuse && sk->sk_state != TCP_LISTEN;
+	//hinfo->bhash是用于存放struct inet_bind_bucket实例的hashmap
 	struct inet_hashinfo *hinfo = sk->sk_prot->h.hashinfo;
-	int ret = 1, port = snum;
+	int ret = 1, port = snum;  //snum这次bind的端口号
 	struct inet_bind_hashbucket *head;
 	struct net *net = sock_net(sk);
+	//inet_bind_bucket代表端口bind的具体信息
 	struct inet_bind_bucket *tb = NULL;
 	kuid_t uid = sock_i_uid(sk);
 
@@ -322,6 +325,7 @@ tb_found:
 		if (sk->sk_reuse == SK_FORCE_REUSE)
 			goto success;
 
+		//SO_REUSEPORT,listen的时候重复bind一个端口
 		if ((tb->fastreuse > 0 && reuse) ||
 		    sk_reuseport_match(tb, sk))
 			goto success;
@@ -346,7 +350,7 @@ success:
 	} else {
 		if (!reuse)
 			tb->fastreuse = 0;
-		if (sk->sk_reuseport) {
+		if (sk->sk_reuseport) {  //SO_REUSEPORT,listen的时候重复bind一个端口
 			/* We didn't match or we don't have fastreuseport set on
 			 * the tb, but we have sk_reuseport set on this socket
 			 * and we know that there are no bind conflicts with

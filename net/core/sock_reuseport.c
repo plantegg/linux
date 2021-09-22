@@ -146,6 +146,7 @@ static void reuseport_free_rcu(struct rcu_head *head)
  *  @sk2: Socket belonging to the existing reuseport group.
  *  May return ENOMEM and not add socket to group under memory pressure.
  */
+//listen方法会调用方法，sk代表第二次listen操作的socket，sk2代表第一次listen操作的socket。
 int reuseport_add_sock(struct sock *sk, struct sock *sk2, bool bind_inany)
 {
 	struct sock_reuseport *old_reuse, *reuse;
@@ -179,6 +180,7 @@ int reuseport_add_sock(struct sock *sk, struct sock *sk2, bool bind_inany)
 	/* paired with smp_rmb() in reuseport_select_sock() */
 	smp_wmb();
 	reuse->num_socks++;
+	//将所有listen的socket的sk->sk_reuseport_cb字段，都指向reuse，这样，我们就可以通过listen的socket的sk_reuseport_cb字段，拿到struct sock_reuseport实例，进而可以拿到所有其他的listen同一端口的socket。
 	rcu_assign_pointer(sk->sk_reuseport_cb, reuse);
 
 	spin_unlock_bh(&reuseport_lock);
@@ -259,6 +261,8 @@ static struct sock *run_bpf_filter(struct sock_reuseport *reuse, u16 socks,
  *    how far the pointer needs to advance to reach the payload.
  *  Returns a socket that should receive the packet (or NULL on error).
  */
+//Listen的时候选择多个socket中的一个派发连接
+//最后使用了reciprocal_scale方法，计算被选中的listen socket的索引，最后返回这个listen socket继续处理tcp连接请求
 struct sock *reuseport_select_sock(struct sock *sk,
 				   u32 hash,
 				   struct sk_buff *skb,
@@ -292,7 +296,7 @@ struct sock *reuseport_select_sock(struct sock *sk,
 
 select_by_hash:
 		/* no bpf or invalid bpf result: fall back to hash usage */
-		if (!sk2)
+		if (!sk2) //reciprocal_scale返回0-ep_ro中的一个
 			sk2 = reuse->socks[reciprocal_scale(hash, socks)];
 	}
 
