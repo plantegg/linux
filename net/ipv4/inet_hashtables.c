@@ -223,6 +223,8 @@ static void inet_unhash2(struct inet_hashinfo *h, struct sock *sk)
 	spin_unlock(&ilb2->lock);
 }
 
+//compute_score 函数计算匹配分。当有多个 socket 都命中的时候，匹配分高的优先命中
+//打分由路由匹配程度来决定
 static inline int compute_score(struct sock *sk, struct net *net,
 				const unsigned short hnum, const __be32 daddr,
 				const int dif, const int sdif, bool exact_dif)
@@ -232,6 +234,7 @@ static inline int compute_score(struct sock *sk, struct net *net,
 
 	if (net_eq(sock_net(sk), net) && inet->inet_num == hnum &&
 			!ipv6_only_sock(sk)) {
+		//如果服务绑定的是 0.0.0.0，那么 rcv_saddr 为假
 		__be32 rcv_saddr = inet->inet_rcv_saddr;
 		score = sk->sk_family == PF_INET ? 2 : 1;
 		if (rcv_saddr) {
@@ -304,6 +307,8 @@ struct sock *__inet_lookup_listener(struct net *net,
 				    const int dif, const int sdif)
 {
 	unsigned int hash = inet_lhashfn(net, hnum);
+    //所有 listen socket 都在这个 listening_hash 中, 然后accept从中搜索到
+    //与之匹配的socket
 	struct inet_listen_hashbucket *ilb = &hashinfo->listening_hash[hash];
 	bool exact_dif = inet_exact_dif_match(net, skb);
 	struct inet_listen_hashbucket *ilb2;
@@ -436,6 +441,8 @@ found:
 EXPORT_SYMBOL_GPL(__inet_lookup_established);
 
 //connect()时进行随机端口四元组可用性的判断
+//如果本地地址和目标地址组成的元组之前已经存在了，则返回错误码EADDRNOTAVAIL: Cannot assign requested address
+//这个时候即使设置了REUSEADDR也要报错
 /* called with local bh disabled */
 static int __inet_check_established(struct inet_timewait_death_row *death_row,
 				    struct sock *sk, __u16 lport,

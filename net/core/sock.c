@@ -687,6 +687,7 @@ int sock_setsockopt(struct socket *sock, int level, int optname,
 	case SO_REUSEADDR:
 		sk->sk_reuse = (valbool ? SK_CAN_REUSE : SK_NO_REUSE);
 		break;
+    //sk_reuseport 字段设置为相应的值，开启的话是 1
 	case SO_REUSEPORT:
 		sk->sk_reuseport = valbool;
 		break;

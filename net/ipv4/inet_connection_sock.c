@@ -313,6 +313,7 @@ int inet_csk_get_port(struct sock *sk, unsigned short snum)
 					  hinfo->bhash_size)];
 	spin_lock_bh(&head->lock);
 	inet_bind_bucket_for_each(tb, &head->chain)
+        //true, 在一个命名空间下而且端口号一致，表示该端口已经绑定
 		if (net_eq(ib_net(tb), net) && tb->port == port)
 			goto tb_found;
 tb_not_found:
