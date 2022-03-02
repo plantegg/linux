@@ -174,11 +174,13 @@ tcp_timewait_state_process(struct inet_timewait_sock *tw, struct sk_buff *skb,
 	     (TCP_SKB_CB(skb)->seq == TCP_SKB_CB(skb)->end_seq || th->rst))) {
 		/* In window segment, it may be only reset or bare ack. */
 
+		//time_wait时收到reset，默认立即释放，如果1337参数为1就忽略reset
 		if (th->rst) {
 			/* This is TIME_WAIT assassination, in two flavors.
 			 * Oh well... nobody has a sufficient solution to this
 			 * protocol bug yet.
 			 */
+			//不开启1337这个选项，当收到 RST 时会立即回收tw，但这样做是有风险的
 			if (twsk_net(tw)->ipv4.sysctl_tcp_rfc1337 == 0) {
 kill:
 				inet_twsk_deschedule_put(tw);
@@ -213,15 +215,18 @@ kill:
 	   we must return socket to time-wait state. It is not good,
 	   but not fatal yet.
 	 */
-
+    //time_wait下收到的是SYN包、没有RST、没有ACK、时间戳没有回绕，并且序列号也没有回绕
+	//会从time_wait变成syn_recv状态
 	if (th->syn && !th->rst && !th->ack && !paws_reject &&
 	    (after(TCP_SKB_CB(skb)->seq, tcptw->tw_rcv_nxt) ||
-	     (tmp_opt.saw_tstamp &&
+	     (tmp_opt.saw_tstamp && //新连接开启了时间戳
 	      (s32)(tcptw->tw_ts_recent - tmp_opt.rcv_tsval) < 0))) {
+		// 初始化序列号
 		u32 isn = tcptw->tw_snd_nxt + 65535 + 2;
 		if (isn == 0)
 			isn++;
 		TCP_SKB_CB(skb)->tcp_tw_isn = isn;
+		//允许重用TIME_WAIT四元组重新建立连接
 		return TCP_TW_SYN;
 	}
 
@@ -235,6 +240,7 @@ kill:
 		 * and new good SYN with random sequence number <rcv_nxt.
 		 * Do not reschedule in the last case.
 		 */
+		// 如果时间戳回绕，或者报文里包含ack，则将 TIMEWAIT 状态的持续时间重新延长
 		if (paws_reject || th->ack)
 			inet_twsk_reschedule(tw, TCP_TIMEWAIT_LEN);
 

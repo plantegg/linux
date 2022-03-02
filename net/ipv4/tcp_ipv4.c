@@ -1740,6 +1740,7 @@ lookup:
 		goto no_tcp_socket;
 
 process:
+    //TIME_WAIT状态收到包后的处理
 	if (sk->sk_state == TCP_TIME_WAIT)
 		goto do_time_wait;
 
@@ -1820,7 +1821,7 @@ process:
 
 	skb->dev = NULL;
 
-	//核心处理逻辑，握手
+	//握手的核心处理逻辑入口
 	if (sk->sk_state == TCP_LISTEN) {
 		ret = tcp_v4_do_rcv(sk, skb);
 		goto put_and_return;
@@ -1882,6 +1883,7 @@ do_time_wait:
 		inet_twsk_put(inet_twsk(sk));
 		goto csum_error;
 	}
+    //由tcp_timewait_state_process函数处理在 time_wait 状态收到的报文
 	switch (tcp_timewait_state_process(inet_twsk(sk), skb, th)) {
 	case TCP_TW_SYN: {
 		struct sock *sk2 = inet_lookup_listener(dev_net(skb->dev),
