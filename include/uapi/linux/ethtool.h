@@ -433,6 +433,7 @@ struct ethtool_modinfo {
  * @pkt_rate_low (both measured in packets per second) the
  * normal {rx,tx}_* coalescing parameters are used.
  */
+//硬中断合并控制相关参数
 struct ethtool_coalesce {
 	__u32	cmd;
 	__u32	rx_coalesce_usecs;
