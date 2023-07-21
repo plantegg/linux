@@ -115,6 +115,7 @@ struct inet_listen_hashbucket {
 	struct hlist_head	head;
 };
 
+//所有listen的socket都在这个hash表中，如果reuseport开启会导致socket比较多
 /* This is for listening sockets, thus all sockets which possess wildcards. */
 #define INET_LHTABLE_SIZE	32	/* Yes, really, this is all you need. */
 

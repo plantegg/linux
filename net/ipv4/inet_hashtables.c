@@ -284,6 +284,7 @@ static struct sock *inet_lhash2_lookup(struct net *net,
 				      dif, sdif, exact_dif);
 		if (score > hiscore) {
 			if (sk->sk_reuseport) {
+				// 如果是reuseport，进行二次哈希查找
 				phash = inet_ehashfn(net, daddr, hnum,
 						     saddr, sport);
 				result = reuseport_select_sock(sk, phash,
@@ -323,12 +324,13 @@ struct sock *__inet_lookup_listener(struct net *net,
 	/* Too many sk in the ilb bucket (which is hashed by port alone).
 	 * Try lhash2 (which is hashed by port and addr) instead.
 	 */
-
+    //只根据目的port做一次查找
 	hash2 = ipv4_portaddr_hash(net, daddr, hnum);
 	ilb2 = inet_lhash2_bucket(hashinfo, hash2);
 	if (ilb2->count > ilb->count)
 		goto port_lookup;
-
+    
+	//根据四元组再做一次查找
 	result = inet_lhash2_lookup(net, ilb2, skb, doff,
 				    saddr, sport, daddr, hnum,
 				    dif, sdif);
@@ -336,7 +338,7 @@ struct sock *__inet_lookup_listener(struct net *net,
 		goto done;
 
 	/* Lookup lhash2 with INADDR_ANY */
-
+	// 四元组没查到，尝试在0.0.0.0监听范围查找
 	hash2 = ipv4_portaddr_hash(net, htonl(INADDR_ANY), hnum);
 	ilb2 = inet_lhash2_bucket(hashinfo, hash2);
 	if (ilb2->count > ilb->count)
@@ -672,7 +674,7 @@ unlock:
 EXPORT_SYMBOL_GPL(inet_unhash);
 
 //__inet_check_established：检查是否和现有 ESTABLISH 的连接是否冲突的时候用的函数
-//也就是检查四元组是否冲突
+//也就是检查四元组是否冲突, 搜索本地可用port
 int __inet_hash_connect(struct inet_timewait_death_row *death_row,
 		struct sock *sk, u32 port_offset,
 		int (*check_established)(struct inet_timewait_death_row *,
@@ -738,7 +740,7 @@ other_parity_scan:
 			//如果端口已被使用，先检查四元组是否冲突，再查找下一个
 			if (net_eq(ib_net(tb), net) && tb->port == port) {
 				if (tb->fastreuse >= 0 ||
-				    tb->fastreuseport >= 0)
+				    tb->fastreuseport >= 0) //fastreuseport默认是-1，bind后会被设为0
 					goto next_port;
 				WARN_ON(hlist_empty(&tb->owners));
 				//检查四元组是否重复
