@@ -586,7 +586,7 @@ EXPORT_SYMBOL(tcp_create_openreq_child);
  *
  * We don't need to initialize tmp_opt.sack_ok as we don't use the results
  */
-
+//tcp_check_req会对报文进行paws_reject检测，tcp_paws_reject如果返回值为true，则返回NULL，并且记录LINUX_MIB_PAWSESTABREJECTED计数
 struct sock *tcp_check_req(struct sock *sk, struct sk_buff *skb,
 			   struct request_sock *req,
 			   bool fastopen, bool *req_stolen)
@@ -611,6 +611,7 @@ struct sock *tcp_check_req(struct sock *sk, struct sk_buff *skb,
 			 * from another data.
 			 */
 			tmp_opt.ts_recent_stamp = ktime_get_seconds() - ((TCP_TIMEOUT_INIT/HZ)<<req->num_timeout);
+			//tcp_paws_reject 这个函数调用tcp_paws_check 来判定是否 paws,true 表示要丢包
 			paws_reject = tcp_paws_reject(&tmp_opt, th->rst);
 		}
 	}
@@ -727,7 +728,8 @@ struct sock *tcp_check_req(struct sock *sk, struct sk_buff *skb,
 	 */
 
 	/* RFC793: "first check sequence number". */
-
+	//paws_reject 为tcp_paws_reject返回的值,为 true 就是要丢包了
+	//丢完包 tcp_check_req 函数会返回 null
 	if (paws_reject || !tcp_in_window(TCP_SKB_CB(skb)->seq, TCP_SKB_CB(skb)->end_seq,
 					  tcp_rsk(req)->rcv_nxt, tcp_rsk(req)->rcv_nxt + req->rsk_rcv_wnd)) {
 		/* Out of window: send ACK and drop. */

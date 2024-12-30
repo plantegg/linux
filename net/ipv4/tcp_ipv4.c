@@ -1773,6 +1773,7 @@ process:
 			th = (const struct tcphdr *)skb->data;
 			iph = ip_hdr(skb);
 			tcp_v4_fill_cb(skb, iph, th);
+			//当状态机处于TCP_NEW_SYN_RECV的状态，指处于三次握手阶段且没有收到ACK的状态，进行tcp_check_req的校验，如果tcp_check_req返回为NULL，则进行丢弃
 			nsk = tcp_check_req(sk, skb, req, false, &req_stolen);
 		}
 		if (!nsk) {

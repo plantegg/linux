@@ -1431,6 +1431,7 @@ static inline bool tcp_paws_reject(const struct tcp_options_received *rx_opt,
 	if (tcp_paws_check(rx_opt, 0))
 		return false;
 
+	// RST packet 比较特殊
 	/* RST segments are not recommended to carry timestamp,
 	   and, if they do, it is recommended to ignore PAWS because
 	   "their cleanup function should take precedence over timestamps."

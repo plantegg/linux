@@ -5360,6 +5360,7 @@ static bool tcp_validate_incoming(struct sock *sk, struct sk_buff *skb,
 	if (tcp_fast_parse_options(sock_net(sk), skb, th, tp) &&
 	    tp->rx_opt.saw_tstamp &&
 	    tcp_paws_discard(sk, skb)) {
+		//ESTAB 状态下不校验 RST包的 PAWS 
 		if (!th->rst) {
 			NET_INC_STATS(sock_net(sk), LINUX_MIB_PAWSESTABREJECTED);
 			if (!tcp_oow_rate_limited(sock_net(sk), skb,
