@@ -96,7 +96,9 @@ static void ip_vs_read_cpu_stats(struct ip_vs_kstats *sum,
 	}
 }
 
-
+//当ipvs规则或者CPU core数过多，该函数耗时较久，进而导致softirq得不到响应
+// net.ipv4.vs.run_estimation 开关参数
+// https://github.com/torvalds/linux/commit/2232642ec3fb
 static void estimation_timer(struct timer_list *t)
 {
 	struct ip_vs_estimator *e;
@@ -105,10 +107,12 @@ static void estimation_timer(struct timer_list *t)
 	struct netns_ipvs *ipvs = from_timer(ipvs, t, est_timer);
 
 	spin_lock(&ipvs->est_lock);
+	//加锁后外层循环
 	list_for_each_entry(e, &ipvs->est_list, list) {
 		s = container_of(e, struct ip_vs_stats, est);
 
 		spin_lock(&s->lock);
+		//嵌套循环，遍历所有core
 		ip_vs_read_cpu_stats(&s->kstats, s->cpustats);
 
 		/* scaled by 2^10, but divided 2 seconds */
